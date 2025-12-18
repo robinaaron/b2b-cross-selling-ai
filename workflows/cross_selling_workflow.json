@@ -1,1 +1,449 @@
-
+{
+  "name": "AI Product Manager - Prototyp V1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -496
+      ],
+      "id": "93071792-47ec-48ee-b3f9-c84d05ad0a72",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Du bist ein Senior Product Manager für B2B Industrieautomation mit 15 Jahren Erfahrung.\n\nSTRENGE ANALYSE-REGELN:\n1. Empfehle NUR Produkte aus dem bereitgestellten Katalog\n2. Berücksichtige Preis-Kompatibilität: ±50% des Zielprodukt-Preises\n3. Priorisiere gleiche/ähnliche Kategorie\n4. Maximal 2 Empfehlungen, dafür tiefgehend begründet\n\nZIELPRODUKT ANALYSE:\n- Produkt: {{$json.name}} (ID: {{$json.product_id}})\n- Kategorie: {{$json.category}}\n- Preis: {{$json.price}} €\n- Key Features: {{JSON.stringify($json.attributes)}}\n- Beschreibung: {{$json.description}}\n\nVERFÜGBARER GESAMTKATALOG ({{$json.catalog_count}} Produkte):\n{{$json.complete_catalog}}\n\nBEWERTUNGSKRITERIEN FÜR EMPFEHLUNGEN:\n1. **Technische Komplementarität**: Passen Schnittstellen, IP-Schutz, Temperaturbereiche?\n2. **Preis-Relation**: Ist das empfohlene Produkt in ähnlicher Preisklasse (±50%)?\n3. **Business Value**: Welcher konkrete ROI (ROI-Berechnung) entsteht?\n4. **Installations-Synergie**: Reduziert es Installations-/Integrationsaufwand?\n\nFORMAT FÜR JEDE EMPFEHLUNG:\n**Empfohlenes Produkt:** [Name] (ID: [product_id])\n**Preisklasse:** [Preis] € (Vergleich: Zielprodukt {{$json.price}} €)\n**Technische Passform:** [Konkrete Schnittstellen/Kompatibilität]\n**Business Case:** [Konkreter ROI oder Einsparung in €/Jahr]\n**Installations-Vorteil:** [Reduzierter Aufwand in Stunden]\n\nBeginne mit der Analyse."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -224
+      ],
+      "id": "01154c9f-2a2f-471e-8e35-331c7cc47711",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tfZHMCv4pdbmQ8b3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        624,
+        -416
+      ],
+      "id": "d00a3340-295f-4be5-9482-7bef3e8bd6e6",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// VOLLSTÄNDIGER Parser\ntry {\n  const ergebnisse = [];\n  \n  // Durch alle Items iterieren\n  for (let i = 0; i < items.length; i++) {\n    const item = items[i].json;\n    \n    // 1. Produktdaten\n    const produkt = {\n      id: item.productId || \"keine ID\",\n      name: item.name || \"kein Name\",\n      category: item.category || \"\",\n      price: item.price || 0,\n      attributes: item.attributes || {}\n    };\n    \n    // 2. KI-Antwort finden\n    let kiText = \"\";\n    let empfehlungen = [];\n    \n    if (item.output && Array.isArray(item.output) && item.output[0]) {\n      kiText = item.output[0].content[0].text || \"\";\n      \n      // Verbesserte Extraktion\n      if (kiText) {\n        // Suche nach Empfehlungs-Blöcken\n        const empfehlungsBlöcke = kiText.split(/(?=\\d+\\.\\s+\\*\\*Empfohlenes Produkt:\\*\\*|\\*\\*Empfohlenes Cross-Selling Produkt)/);\n        \n        for (const block of empfehlungsBlöcke) {\n          if (block.includes('Empfohlenes Produkt:')) {\n            const empfehlung = {\n              name: extrahiereAusBlock(block, 'Empfohlenes Produkt:'),\n              id: extrahiereAusBlock(block, 'ID:'),\n              technischeBegruendung: extrahiereAusBlock(block, 'Technische/Functionale Begründung:') || \n                                    extrahiereAusBlock(block, 'Technische Begründung:'),\n              geschaeftlicherVorteil: extrahiereAusBlock(block, 'Geschäftlicher Vorteil:')\n            };\n            \n            // Nur hinzufügen wenn Name existiert\n            if (empfehlung.name && empfehlung.name !== \"extrahiereAusBlock\") {\n              empfehlungen.push(empfehlung);\n            }\n          }\n        }\n      }\n    }\n    \n    ergebnisse.push({\n      produkt: produkt,\n      anzahlEmpfehlungen: empfehlungen.length,\n      empfehlungen: empfehlungen,\n      kiAntwortRaw: kiText.substring(0, 300) + (kiText.length > 300 ? \"...\" : \"\"),\n      parsingQualität: empfehlungen.length > 0 ? \"gut\" : \"kritisch\"\n    });\n  }\n  \n  // Hilfsfunktion\n  function extrahiereAusBlock(block, marker) {\n    try {\n      const lines = block.split('\\n');\n      for (const line of lines) {\n        if (line.includes(marker)) {\n          // Entferne den Marker und ** ** Formatierung\n          return line.replace(marker, '')\n                    .replace(/\\*\\*/g, '')\n                    .trim();\n        }\n      }\n      return \"\";\n    } catch (e) {\n      return \"\";\n    }\n  }\n  \n  return [{\n    json: {\n      status: \"✅ Parser vollständig\",\n      anzahlProdukte: ergebnisse.length,\n      analysierteProdukte: ergebnisse,\n      zusammenfassung: `${ergebnisse.length} Produkte mit durchschnittlich ${(ergebnisse.reduce((sum, e) => sum + e.anzahlEmpfehlungen, 0) / ergebnisse.length).toFixed(1)} Empfehlungen`\n    }\n  }];\n  \n} catch (error) {\n  return [{\n    json: {\n      fehler: \"Parser Exception\",\n      error: error.message,\n      stack: error.stack.substring(0, 200) + \"...\"\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        -416
+      ],
+      "id": "205c4844-2dac-47ad-ac2b-1ee2273fa49a",
+      "name": "parsen und strukturieren"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=KRITISCHE ANALYSE - NUTZE DIE KONKRETEN DATEN:\n\nHIER SIND DIE VOLLSTÄNDIGEN DATEN DIE DU ANALYSIEREN SOLLST:\n{{JSON.stringify($json, null, 2)}}\n\n---\nANALYSEAUFGABE:\n\nBasierend auf DIESEN konkreten Daten (nicht generischen Beispielen):\n\n1. Produkt: {{$json.produkt.name}} ({{$json.produkt.id}})\n2. Empfohlene Cross-Selling-Produkte: {{$json.anzahlEmpfehlungen}} Stück\n\nBewerte:\n- Sind die technischen Begründungen plausibel für DIESES konkrete B2B-Produkt?\n- Sind die geschäftlichen Vorteile überzeugend formuliert?\n- Sind die Produkt-IDs realistisch? (\"hypothetische ID\" = schlecht)\n\nGib konkrete, auf DIESE Daten bezogene Verbesserungsvorschläge."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        928,
+        -416
+      ],
+      "id": "2d0304f9-3926-4f67-8cdb-252b08dd51e9",
+      "name": "Review & Improvement",
+      "credentials": {
+        "openAiApi": {
+          "id": "tfZHMCv4pdbmQ8b3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=DU ERHÄLTST REVIEW-DATEN VOM AI PRODUCT MANAGER.\n\nREVIEW-DATEN:\n{{$json.output[0].content[0].text}}\n\nDEINE AUFGABE:\n1. Lies die Review-Daten oben\n2. Identifiziere alle 5 genannten Produkte\n3. Erstelle für jedes Produkt 2-3 Test-Specs im Given-When-Then Format\n4. NUTZE NUR DIE INFORMATIONEN AUS DEN REVIEW-DATEN\n\nTEST-FOKUS (basierend auf Kritikpunkten in der Review):\n- ID-Qualität (keine TBD/hypothetische IDs)\n- Technische Spezifikationen (vollständig und konkret)\n- Business Value (messbarer Nutzen)\n\nFORMAT:\nGiven: [Kontext]\nWhen: [Aktion/Trigger]\nThen: [Erwartetes Ergebnis]\n\nBeginne direkt mit dem ersten Produkt das in der Review genannt wird."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        -352
+      ],
+      "id": "2107caf8-6dca-413f-9c95-f007552c8da2",
+      "name": "Test-Specs",
+      "credentials": {
+        "openAiApi": {
+          "id": "tfZHMCv4pdbmQ8b3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=DU ERHÄLTST TEST-SPECS FÜR EIN CROSS-SELLING FEATURE.\n\nTEST-SPECS:\n{{$json.content[0].text}}\n\n---\nAUFGABE:\nErstelle konkrete technische Entwickler-Tasks aus diesen Test-Specs für ein E-Commerce Team.\n\nFORMAT FÜR JEDE TASK:\n**Task-ID:** [CS-DEV-001, CS-DEV-002, etc.]\n**Priorität:** [High/Medium/Low]\n**Aufgabe:** [Kurze, klare Beschreibung]\n**Akzeptanzkriterien:** \n- [ ] [Konkretes Kriterium 1]\n- [ ] [Konkretes Kriterium 2]\n**Technische Hinweise:** [Datenbank, API, Frontend, etc.]\n**Geschätzer Aufwand:** [Story Points oder Stunden]\n\nFOKUS-BEREICHE:\n1. **Datenbank:** Produkt-IDs, Cross-Selling-Beziehungen\n2. **Backend:** Empfehlungslogik, API-Endpoints\n3. **Frontend:** UI-Komponenten, Darstellung\n4. **Testing:** Test-Implementierung basierend auf Specs\n\nBeginne mit den dringendsten Tasks für ID-Validierung."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        -352
+      ],
+      "id": "d1ee00b2-cb50-42e4-8a74-d131e2af284c",
+      "name": "Dev Tasks Generator",
+      "credentials": {
+        "openAiApi": {
+          "id": "tfZHMCv4pdbmQ8b3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=DU ERHÄLTST TEST-SPECS IM GIVEN-WHEN-THEN FORMAT.\n\nTEST-SPECS:\n{{$json.content[0].text}}\n\n---\nAUFGABE:\nGeneriere Playwright TypeScript Test-Code für die kritischsten Test-Specs.\n\nFOKUS AUF:\n1. **ID-Validierung** (keine TBD-IDs)\n2. **Cross-Selling-Darstellung** im UI\n3. **Business-Value-Kommunikation**\n\nFORMAT:\n```typescript\nimport { test, expect } from '@playwright/test';\n\ntest('[Testname]', async ({ page }) => {\n  // Given: [Kontext]\n  // When: [Aktion]\n  // Then: [Assertion]\n});"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        -352
+      ],
+      "id": "d602e056-ac88-4a30-84a6-e38c357c1d57",
+      "name": "Playwright-MCP",
+      "credentials": {
+        "openAiApi": {
+          "id": "tfZHMCv4pdbmQ8b3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM products",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        256,
+        -496
+      ],
+      "id": "8d1883a7-7390-45a4-aa34-f520197d00ca",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "mySql": {
+          "id": "I1QiDKbEHQkQr5lt",
+          "name": "b2b_mysql"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sammle alle Produkte in ein Array\nconst allProducts = [];\n\n// Durch alle Items vom MySQL Node iterieren\nfor (const item of $input.all()) {\n  allProducts.push(item.json);\n}\n\n// Für jedes Eingabe-Item: Aktuelles Produkt + gesamter Katalog ausgeben\nconst result = [];\nfor (let i = 0; i < $input.all().length; i++) {\n  result.push({\n    json: {\n      // Aktuelles Produkt (wie bisher)\n      ...$input.all()[i].json,\n      // Gesamter Katalog als JSON-STRING (nicht als Objekte)\n      complete_catalog: JSON.stringify(allProducts),\n      // Anzahl Produkte\n      catalog_count: allProducts.length\n    }\n  });\n}\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -224
+      ],
+      "id": "91c2804c-f22f-4686-8bb1-d76221183dbe",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "ai_analyses",
+          "mode": "list",
+          "cachedResultName": "ai_analyses"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        784,
+        -144
+      ],
+      "id": "c398146d-c286-470d-9330-62227eb3cc66",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "mySql": {
+          "id": "I1QiDKbEHQkQr5lt",
+          "name": "b2b_mysql"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a8e5f61d-706c-4b58-95d2-12b61c8ea715",
+              "name": "product_id",
+              "value": "PLC-3000-CONTROL",
+              "type": "string"
+            },
+            {
+              "id": "e6bcf60e-c3ee-4f66-9473-96cbbccfc9bf",
+              "name": "product_name",
+              "value": "Testprodukt",
+              "type": "string"
+            },
+            {
+              "id": "0d13c4cf-0101-4bc0-8f26-2a7044498a4d",
+              "name": "product_price",
+              "value": "19.99",
+              "type": "string"
+            },
+            {
+              "id": "ac3420ae-8aad-4c12-aad3-0364b344c7a4",
+              "name": "recommendations",
+              "value": "[]",
+              "type": "string"
+            },
+            {
+              "id": "97e1d19c-6c3e-4849-9cca-1ce0169d25b1",
+              "name": "output",
+              "value": "Automatische Analyse abgeschlossen",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        -144
+      ],
+      "id": "be64371e-13a2-4a66-9034-157c61e136d7",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "parsen und strukturieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parsen und strukturieren": {
+      "main": [
+        [
+          {
+            "node": "Review & Improvement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review & Improvement": {
+      "main": [
+        [
+          {
+            "node": "Test-Specs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test-Specs": {
+      "main": [
+        [
+          {
+            "node": "Dev Tasks Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dev Tasks Generator": {
+      "main": [
+        [
+          {
+            "node": "Playwright-MCP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "406f638b-cdc0-4f76-88e7-b08ee2bf5491",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c889a602b5eda9e0aab060a4ee87d80f29c61f72ca35aaebf0505315338dd710"
+  },
+  "id": "jFKO5SlmyzIlRri4",
+  "tags": []
+}
