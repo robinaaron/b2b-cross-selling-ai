@@ -1,10 +1,9 @@
 ## Datenfluss
-1. **Trigger:** Zeitplan (Scheduled) oder manueller Start
-2. **Input:** Produktdaten via Webhook oder manuelle Eingabe
+1. **Trigger:** manueller Start
+2. **Input:** Produktdaten via SQL Node
 3. **AI-Verarbeitung:** OpenAI GPT-Analyse für Cross-Selling-Empfehlungen
 4. **Datenaufbereitung:** n8n Code/Edit Fields Node für Schema-Mapping
 5. **Speicherung:** Ergebnisse in `ai_analyses` Tabelle
-6. **Validierung:** FOREIGN KEY (→ `products`) und NOT NULL Constraints
 
 [Trigger] → [Datenvorverarbeitung] → [AI-Analyse] → [Code Node] → [Edit Fields] → [Datenbank]
 
