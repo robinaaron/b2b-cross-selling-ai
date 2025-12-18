@@ -25,5 +25,3 @@
 9. **MySQL Insert Operation**  
    Speichert strukturierte Analyse in `ai_analyses` Tabelle  
    Mapping: Auto-Map
-
-*(Nummer 10 entfernt - war ein Duplikat von Schritt 1)*
