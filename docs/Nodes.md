@@ -1,51 +1,29 @@
-Workflow Nodes
-1. Execute a SQL query (Start-Node)
-Typ: MySQL Database Node
-Zweck: Extrahiert Produktdaten aus Datenbank
-Output: Produktdatensätze für Analyse
+1. **Execute a SQL query** (Start-Node)  
+   Extrahiert Produktdaten für AI-Analyse
 
-2. Markup console (Debug/Logging Node)
-Typ: Code Node
-Zweck: Dateninspektion
-Funktion: Zeigt Rohdaten vor AI-Verarbeitung
+2. **Markup console** (Debug/Logging Node)  
+   Dateninspektion der Rohdaten
 
-3. Messages & Response Test (AI Processing)
-Typ: OpenAI/ChatGPT Node
-Zweck: Generiert erste AI-Analyse
-Input: Produktdaten von SQL Query
-Output: Unstrukturierte AI-Antwort
+3. **Messages & Response Test** (AI Processing)  
+   Generiert erste AI-Analyse
 
-4. Review & Improvement
-Typ: OpenAI Node
-Zweck: Verbessert und strukturiert AI-Antwort
-Funktion: Qualitätskontrolle der Analyse
+4. **Review & Improvement**  
+   Verbessert AI-Antwort
 
-6. Task-Specific Response Test (Specialized AI)
-Typ: OpenAI Node
-Zweck: Aufgaben-spezifische Verfeinerung
+5. **Task-Specific Response Test** (Specialized AI)  
+   Aufgaben-spezifische Verfeinerung
 
-7. Dev-Tasks Generator
-Typ: OpenAI Node
-Zweck: Generiert konkrete technische Entwickler-Tasks Im GIVEN-WHEN-THEN Format
-Output: Potenziell JavaScript-Code für weitere Verarbeitung
+6. **Dev-Tasks Generator**  
+   Generiert Entwickler-Tasks im GIVEN-WHEN-THEN Format
 
-8. Playwright-MCP Response Test (Testing/Validation)
-Typ: OpenAI Node mit Testing-Fokus
-Zweck: Generiere Playwright TypeScript Test-Code für die kritischsten Test-Specs.
+7. **Playwright-MCP Response Test** (Testing/Validation)  
+   Generiert Playwright Test-Code
 
-9. Code in JavaScript (Data Transformation)
-Typ: Code Node
-Zweck: Transformiert AI-Output in strukturiertes Format
+8. **Code in JavaScript** (Data Transformation)  
+   Transformiert AI-Output in strukturiertes Format
 
-10. Execute a SQL query
-Typ: MySQL Database Node
-Zweck: Extrahiert Produktdaten aus Datenbank
-SQL Query: SELECT product_id, product_name, price, category FROM products WHERE ...
-Output: Produktdatensätze für AI-Analyse
-Funktion: Liefert Rohdatenbasis für alle weiteren Schritte
+9. **MySQL Insert Operation**  
+   Speichert strukturierte Analyse in `ai_analyses` Tabelle  
+   Mapping: Auto-Map
 
-11. MySQL Insert Operation
-Verbindung: b2b.mysql Credentials
-Tabelle: ai_analyses
-Funktion: Speichert strukturierte Analyse in Datenbank
-Mapping: Auto-Map
+*(Nummer 10 entfernt - war ein Duplikat von Schritt 1)*
