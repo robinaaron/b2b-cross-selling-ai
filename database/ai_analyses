@@ -1,0 +1,15 @@
+CREATE TABLE `ai_analyses` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `analysis_timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `product_id` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `product_name` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `product_price` decimal(12,2) NOT NULL,
+  `analysis_type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'cross_selling',
+  `recommendations` json NOT NULL,
+  `quality_score` decimal(3,2) DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `output` text COLLATE utf8mb4_unicode_ci,
+  PRIMARY KEY (`id`),
+  KEY `product_id` (`product_id`),
+  CONSTRAINT `ai_analyses_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
