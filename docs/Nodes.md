@@ -1,5 +1,3 @@
-Kern Komponenten:
-
 1. **Execute a SQL query** (Start-Node)  
    Extrahiert Produktdaten für AI-Analyse
 
